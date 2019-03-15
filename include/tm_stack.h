@@ -1,3 +1,8 @@
+/*
+ * Copyright (C) 2019 Ding Tao <i@dingtao.org>
+ *
+ * SPDX-License-Identifier: GPL-3.0
+ */
 #ifndef TM_STACK_H
 #define TM_STACK_H
 
@@ -10,11 +15,15 @@
  * @priv: Teemo stack private data
  * */
 typedef struct tm_stack_s {
-	long count;
-	void *top;
-	void *bottom;
-	void *priv;
+	unsigned long	count;
+	void		*top;
+	void		*bottom;
+	void		*priv;
 } tm_stack_t;
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /**
  * tm_stack_init - Initialize a stack
@@ -66,6 +75,10 @@ static inline long tm_stack_get_count(tm_stack_t *stack)
 		return -1;
 	return stack->count;
 }
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* TM_STACK_H */
 
