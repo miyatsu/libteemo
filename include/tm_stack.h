@@ -1,38 +1,71 @@
 #ifndef TM_STACK_H
 #define TM_STACK_H
 
-#include <stdint.h>
-
+/**
+ * tm_stack_t - Teemo stack data structure
+ *
+ * @count: How many data in the stack
+ * @top: Point to the top element of the stack
+ * @botton: Point to the bottom element of the stack
+ * @priv: Teemo stack private data
+ * */
 typedef struct tm_stack_s {
-	int stack_type;
-	union {
-		void *array;
-		void *header;
-	};
+	long count;
+	void *top;
+	void *buttom;
+	void *priv;
 } tm_stack_t;
 
 /**
- * stack_init - Initialize a stack with minimal size of minimal_size
+ * tm_stack_init - Initialize a stack
  *
  * @stack: Point to the stack
- * @minimal_size: minimal size of an new stack
  * @return:  0 - success
  *	    -1 - error
  * */
-int tm_stack_init(tm_stack_t *stack, int minimal_size);
+int tm_stack_init(tm_stack_t *stack);
 
 /**
- * stack_resize - Resize the stack with new size
+ * tm_stack_destroy - Destroy a stack
  *
  * @stack: Point to the stack
- * @new_size: New size of this stack
  * @return:  0 - success
  *	    -1 - error
  * */
-int tm_stack_resize(tm_stack_t stack, int new_size);
+int tm_stack_destroy(tm_stack_t *stack);
 
-int tm_stack_push(void*);
-void* tm_stack_pop(void);
+/**
+ * tm_stack_push - Push one element into stack
+ *
+ * @stack: Point to the stack
+ * @data: Pointer of the data
+ * @return:  0 - success
+ *	    -1 - error
+ * */
+int tm_stack_push(tm_stack_t *stack, void *data);
+
+/**
+ * tm_stack_pop - Pop top element out of stack
+ *
+ * @stack: Point to the stack
+ * @return: address - success
+ *	       NULL - error
+ * */
+void* tm_stack_pop(tm_stack_t *stack);
+
+/**
+ * tm_stack_get_count - Get the total number of the data in stack
+ *
+ * @stack: Point to the stack
+ * @return:  > 0 success
+ *	      -1 error
+ * */
+static inline long tm_stack_get_count(tm_stack_t *stack)
+{
+	if (NULL == stack)
+		return -1;
+	return stack->count;
+}
 
 #endif /* TM_STACK_H */
 
