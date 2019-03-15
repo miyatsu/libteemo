@@ -12,7 +12,7 @@
 typedef struct tm_stack_s {
 	long count;
 	void *top;
-	void *buttom;
+	void *bottom;
 	void *priv;
 } tm_stack_t;
 
