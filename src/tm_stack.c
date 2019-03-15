@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <stdbool.h>
 
 #include "tm_stack.h"
@@ -12,12 +13,12 @@ typedef struct tm_stack_element_s {
 	void *next;
 } tm_stack_data_t;
 
-static bool tm_stack_internal_is_stack_empty(tm_stack_t *stack)
+bool tm_stack_internal_is_stack_empty(tm_stack_t *stack)
 {
 	return true;
 }
 
-static bool tm_stack_internal_stack_integrity_check_ok(tm_stack_t *stack)
+bool tm_stack_internal_stack_integrity_check_ok(tm_stack_t *stack)
 {
 	void *data_p;
 	int data_count;
@@ -32,7 +33,7 @@ static bool tm_stack_internal_stack_integrity_check_ok(tm_stack_t *stack)
 		}
 	} else {
 		/* Both pointer MUST NOT be NULL */
-		if ((NULL == stack->botton) || (NULL == stack->top)) {
+		if ((NULL == stack->bottom) || (NULL == stack->top)) {
 			return false;
 		}
 
@@ -72,9 +73,10 @@ static bool tm_stack_internal_stack_integrity_check_ok(tm_stack_t *stack)
 				}
 			}
 
-			data_p = data_p->next;
+			data_p = ((tm_stack_data_t*)data_p)->next;
 		} while (NULL != data_p);
 	}
+	return true;
 }
 
 int tm_stack_init(tm_stack_t *stack)
@@ -94,6 +96,7 @@ int tm_stack_destroy(tm_stack_t *stack)
 {
 	if (NULL == stack)
 		return -1;
+	return -1;
 }
 
 
@@ -102,25 +105,24 @@ int tm_stack_push(tm_stack_t *stack, void *data)
 	if (NULL == stack)
 		return -1;
 
-	tm_stack_element_t *p;
+	tm_stack_data_t *p;
 
-	p = malloc(sizeof(tm_stack_element_t));
+	p = malloc(sizeof(tm_stack_data_t));
 	if (NULL == p)
 		return -1;
 
-	if (0 == stack->count)
 	return 0;
 }
 
 void* tm_stack_pop(tm_stack_t *stack)
 {
 	if (NULL == stack)
-		return -1;
+		return NULL;
 
 	if ((0 == stack->count) ||
-	    (NULL == stack->botton) ||
+	    (NULL == stack->bottom) ||
 	    (NULL == stack->top))
-		return -1;
-	return 0;
+		return NULL;
+	return NULL;
 }
 
