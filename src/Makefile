@@ -4,7 +4,7 @@ CFLAGS :=
 CC += gcc
 CFLAGS += -I ../include
 CFLAGS += -Wall
-CFLAGS += --std=c11
+CFLAGS += --std=c18
 
 all: tm_stack.o
 

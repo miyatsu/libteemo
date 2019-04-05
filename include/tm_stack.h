@@ -6,6 +6,8 @@
 #ifndef TM_STACK_H
 #define TM_STACK_H
 
+#include <stdatomic.h>
+
 /**
  * tm_stack_t - Teemo stack data structure
  *
