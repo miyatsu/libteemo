@@ -15,12 +15,10 @@
  * This structure have some attributes we need to care about, like muti-thread
  * access mutex or binary compatible flags.
  *
- * TODO: Current not used.
- *
- * @reserved: Unused value.
+ * @option: Option of this stack
  * */
 typedef struct tm_stack_attribute_s {
-	void *reserved;
+	unsigned long option;
 } tm_stack_attribute_t;
 
 /**
@@ -48,6 +46,37 @@ typedef struct tm_stack_priv_s {
 } tm_stack_priv_t;
 
 
+static int tm_stack_internal_get_option(tm_stack_priv_t *priv,
+					unsigned long *option)
+{
+	if (NULL == priv) {
+		return -1;
+	}
+
+	if (NULL == option) {
+		return -1;
+	}
+
+	*option = priv->attribute->option;
+
+	return 0;
+}
+
+static int tm_stack_internal_set_option(tm_stack_priv_t *priv,
+					unsigned long option)
+{
+	if (NULL == priv) {
+		return -1;
+	}
+
+	if (option >= TM_STACK_OPTION_MAX) {
+		return -1;
+	}
+
+	priv->attribute->option = option;
+
+	return 0;
+}
 
 static int tm_stack_internal_push(tm_stack_priv_t *priv, void *data)
 {
@@ -121,19 +150,19 @@ static int tm_stack_internal_pop(tm_stack_priv_t *priv, void **data)
 	return 0;
 }
 
-static int tm_stack_internal_init(tm_stack_priv_t *priv)
+static int tm_stack_internal_init(tm_stack_priv_t *priv, unsigned long option)
 {
 	if (NULL == priv) {
 		return -1;
 	}
 
-	priv->attribute = (tm_stack_attribute_t*)malloc(sizeof(tm_stack_attribute_t));
+	priv->attribute =
+		(tm_stack_attribute_t*)malloc(sizeof(tm_stack_attribute_t));
 	if (NULL == priv->attribute) {
 		return -1;
 	}
 
-	/* TODO attribute currently not used, mark reserved as NULL */
-	priv->attribute->reserved = NULL;
+	priv->attribute->option = option;
 
 	priv->top = NULL;
 
@@ -158,7 +187,34 @@ static int tm_stack_internal_destroy(tm_stack_priv_t *priv)
 	return 0;
 }
 
-int tm_stack_init(tm_stack_t *stack)
+
+int tm_stack_get_option(tm_stack_t *stack, unsigned long *option)
+{
+	if (NULL == stack) {
+		return -1;
+	}
+
+	if (NULL == stack->priv) {
+		return -1;
+	}
+
+	return tm_stack_internal_get_option(stack->priv, option);
+}
+
+int tm_stack_set_option(tm_stack_t *stack, unsigned long option)
+{
+	if (NULL == stack) {
+		return -1;
+	}
+
+	if (NULL == stack->priv) {
+		return -1;
+	}
+
+	return tm_stack_internal_set_option(stack->priv, option);
+}
+
+int tm_stack_init(tm_stack_t *stack, unsigned long option)
 {
 	int ret;
 	tm_stack_priv_t *priv;
@@ -173,7 +229,7 @@ int tm_stack_init(tm_stack_t *stack)
 	}
 
 	/* ret == 0 means initial success, other wise error */
-	ret = tm_stack_internal_init(priv);
+	ret = tm_stack_internal_init(priv, option);
 	if (ret) {
 		free(priv);
 		return ret;
@@ -183,7 +239,6 @@ int tm_stack_init(tm_stack_t *stack)
 
 	return 0;
 }
-
 
 int tm_stack_destroy(tm_stack_t *stack)
 {
@@ -206,7 +261,6 @@ int tm_stack_destroy(tm_stack_t *stack)
 
 	return 0;
 }
-
 
 int tm_stack_push(tm_stack_t *stack, void *data)
 {
