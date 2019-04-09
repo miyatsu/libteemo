@@ -7,6 +7,8 @@
 #include <stdlib.h>
 #include <stdbool.h>
 
+#include <threads.h>
+
 #include "tm_stack.h"
 
 /**
@@ -16,9 +18,12 @@
  * access mutex or binary compatible flags.
  *
  * @option: Option of this stack
+ *
+ * @lock: Mutex lock for push/pop
  * */
 typedef struct tm_stack_attribute_s {
 	unsigned long option;
+	mtx_t lock;
 } tm_stack_attribute_t;
 
 /**
@@ -46,44 +51,32 @@ typedef struct tm_stack_priv_s {
 } tm_stack_priv_t;
 
 
-static int tm_stack_internal_get_option(tm_stack_priv_t *priv,
+static int tm_stack_internal_get_option(tm_stack_priv_t **priv,
 					unsigned long *option)
 {
-	if (NULL == priv) {
-		return -1;
-	}
-
 	if (NULL == option) {
 		return -1;
 	}
 
-	*option = priv->attribute->option;
+	*option = (*priv)->attribute->option;
 
 	return 0;
 }
 
-static int tm_stack_internal_set_option(tm_stack_priv_t *priv,
+static int tm_stack_internal_set_option(tm_stack_priv_t **priv,
 					unsigned long option)
 {
-	if (NULL == priv) {
-		return -1;
-	}
-
 	if (option >= TM_STACK_OPTION_MAX) {
 		return -1;
 	}
 
-	priv->attribute->option = option;
+	(*priv)->attribute->option = option;
 
 	return 0;
 }
 
-static int tm_stack_internal_push(tm_stack_priv_t *priv, void *data)
+static int tm_stack_internal_push(tm_stack_priv_t **priv, void *data)
 {
-	if (NULL == priv) {
-		return -1;
-	}
-
 	tm_stack_item_t *item;
 
 	/* Alloc space for data */
@@ -97,49 +90,61 @@ static int tm_stack_internal_push(tm_stack_priv_t *priv, void *data)
 
 	/* Push item to stack */
 
-	if (NULL == priv->top) {
+	if ((*priv)->attribute->option | TM_STACK_OPTION_MULTI_THREAD) {
+		mtx_lock(&(*priv)->attribute->lock);
+	}
+
+	if (NULL == (*priv)->top) {
 		/* Empty stack */
 
 		item->next = NULL;
 
-		priv->top = item;
+		(*priv)->top = item;
 	} else {
 		/* None empty stack */
 
-		item->next = priv->top;
+		item->next = (*priv)->top;
 
-		priv->top = item;
+		(*priv)->top = item;
+	}
+
+	if ((*priv)->attribute->option | TM_STACK_OPTION_MULTI_THREAD) {
+		mtx_unlock(&(*priv)->attribute->lock);
 	}
 
 	return 0;
 }
 
-static int tm_stack_internal_pop(tm_stack_priv_t *priv, void **data)
+static int tm_stack_internal_pop(tm_stack_priv_t **priv, void **data)
 {
-	if (NULL == priv) {
-		return -1;
+	tm_stack_item_t *item;
+
+	if ((*priv)->attribute->option | TM_STACK_OPTION_MULTI_THREAD) {
+		mtx_lock(&(*priv)->attribute->lock);
 	}
 
 	/* Stack empty */
-	if (NULL == priv->top) {
+	if (NULL == (*priv)->top) {
 		return -1;
 	}
 
-	tm_stack_item_t *item;
-
 	/* Get item */
-	item = priv->top;
+	item = (*priv)->top;
 
 	/* Pop item from stack */
 
-	if (NULL == priv->top->next) {
+	if (NULL == (*priv)->top->next) {
 		/* Stack have only one item */
 
-		priv->top = NULL;
+		(*priv)->top = NULL;
 	} else {
 		/* Stack have more than one item */
 
-		priv->top = priv->top->next;
+		(*priv)->top = (*priv)->top->next;
+	}
+
+	if ((*priv)->attribute->option | TM_STACK_OPTION_MULTI_THREAD) {
+		mtx_unlock(&(*priv)->attribute->lock);
 	}
 
 	if (NULL != data) {
@@ -150,34 +155,30 @@ static int tm_stack_internal_pop(tm_stack_priv_t *priv, void **data)
 	return 0;
 }
 
-static int tm_stack_internal_init(tm_stack_priv_t *priv, unsigned long option)
+static int tm_stack_internal_init(tm_stack_priv_t **priv, unsigned long option)
 {
-	if (NULL == priv) {
-		return -1;
-	}
-
-	priv->attribute =
+	(*priv)->attribute =
 		(tm_stack_attribute_t*)malloc(sizeof(tm_stack_attribute_t));
-	if (NULL == priv->attribute) {
+	if (NULL == (*priv)->attribute) {
 		return -1;
 	}
 
-	priv->attribute->option = option;
+	(*priv)->attribute->option = option;
 
-	priv->top = NULL;
+	mtx_init(&(*priv)->attribute->lock, mtx_plain);
+
+	(*priv)->top = NULL;
 
 	return 0;
 }
 
-static int tm_stack_internal_destroy(tm_stack_priv_t *priv)
+static int tm_stack_internal_destroy(tm_stack_priv_t **priv)
 {
 	int ret;
 
-	if (NULL == priv) {
-		return -1;
-	}
+	mtx_destroy(&(*priv)->attribute->lock);
 
-	free(priv->attribute);
+	free((*priv)->attribute);
 
 	/* Remove all item */
 	do {
@@ -198,7 +199,7 @@ int tm_stack_get_option(tm_stack_t *stack, unsigned long *option)
 		return -1;
 	}
 
-	return tm_stack_internal_get_option(stack->priv, option);
+	return tm_stack_internal_get_option((tm_stack_priv_t**)&stack->priv, option);
 }
 
 int tm_stack_set_option(tm_stack_t *stack, unsigned long option)
@@ -211,7 +212,7 @@ int tm_stack_set_option(tm_stack_t *stack, unsigned long option)
 		return -1;
 	}
 
-	return tm_stack_internal_set_option(stack->priv, option);
+	return tm_stack_internal_set_option((tm_stack_priv_t**)&stack->priv, option);
 }
 
 int tm_stack_init(tm_stack_t *stack, unsigned long option)
@@ -229,7 +230,7 @@ int tm_stack_init(tm_stack_t *stack, unsigned long option)
 	}
 
 	/* ret == 0 means initial success, other wise error */
-	ret = tm_stack_internal_init(priv, option);
+	ret = tm_stack_internal_init(&priv, option);
 	if (ret) {
 		free(priv);
 		return ret;
@@ -252,7 +253,7 @@ int tm_stack_destroy(tm_stack_t *stack)
 		return -1;
 	}
 
-	ret = tm_stack_internal_destroy((tm_stack_priv_t*)stack->priv);
+	ret = tm_stack_internal_destroy((tm_stack_priv_t**)&stack->priv);
 	if (ret) {
 		return ret;
 	}
@@ -272,7 +273,7 @@ int tm_stack_push(tm_stack_t *stack, void *data)
 		return -1;
 	}
 
-	return tm_stack_internal_push(stack->priv, data);
+	return tm_stack_internal_push((tm_stack_priv_t**)&stack->priv, data);
 }
 
 int tm_stack_pop(tm_stack_t *stack, void **data)
@@ -285,6 +286,6 @@ int tm_stack_pop(tm_stack_t *stack, void **data)
 		return -1;
 	}
 
-	return tm_stack_internal_pop(stack->priv, data);
+	return tm_stack_internal_pop((tm_stack_priv_t**)&stack->priv, data);
 }
 
