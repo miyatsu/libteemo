@@ -5,6 +5,6 @@
 # Src level Makefile.am
 
 lib_LTLIBRARIES = libteemo.la
-libteemo_la_SOURCES = tm_stack.c
+libteemo_la_SOURCES = tm_stack.c tm_queue.c
 libteemo_la_CFLAGS = --std=c18 -I../include/
 
