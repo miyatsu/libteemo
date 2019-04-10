@@ -168,6 +168,7 @@ static int tm_stack_internal_init(tm_stack_priv_t **priv, unsigned long option)
 	(*priv)->attribute =
 		(tm_stack_attribute_t*)malloc(sizeof(tm_stack_attribute_t));
 	if (NULL == (*priv)->attribute) {
+		free(*priv);
 		return -1;
 	}
 
