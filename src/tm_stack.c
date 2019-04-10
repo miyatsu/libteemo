@@ -160,6 +160,11 @@ static int tm_stack_internal_pop(tm_stack_priv_t **priv, void **data)
 
 static int tm_stack_internal_init(tm_stack_priv_t **priv, unsigned long option)
 {
+	(*priv) = (tm_stack_priv_t*)malloc(sizeof(tm_stack_priv_t));
+	if (NULL == (*priv)) {
+		return -1;
+	}
+
 	(*priv)->attribute =
 		(tm_stack_attribute_t*)malloc(sizeof(tm_stack_attribute_t));
 	if (NULL == (*priv)->attribute) {
@@ -187,6 +192,10 @@ static int tm_stack_internal_destroy(tm_stack_priv_t **priv)
 	do {
 		ret = tm_stack_internal_pop(priv, NULL);
 	} while (ret == 0);
+
+	free(*priv);
+
+	(*priv) = NULL;
 
 	return 0;
 }
@@ -220,34 +229,17 @@ int tm_stack_set_option(tm_stack_t *stack, unsigned long option)
 
 int tm_stack_init(tm_stack_t *stack, unsigned long option)
 {
-	int ret;
-	tm_stack_priv_t *priv;
-
 	if (NULL == stack) {
 		return -1;
 	}
 
-	priv = (tm_stack_priv_t*)malloc(sizeof(tm_stack_priv_t));
-	if (NULL == priv) {
-		return -1;
-	}
+	stack->priv = NULL;
 
-	/* ret == 0 means initial success, other wise error */
-	ret = tm_stack_internal_init(&priv, option);
-	if (ret) {
-		free(priv);
-		return ret;
-	}
-
-	stack->priv = priv;
-
-	return 0;
+	return tm_stack_internal_init((tm_stack_priv_t**)&stack->priv, option);
 }
 
 int tm_stack_destroy(tm_stack_t *stack)
 {
-	int ret;
-
 	if (NULL == stack) {
 		return -1;
 	}
@@ -256,14 +248,7 @@ int tm_stack_destroy(tm_stack_t *stack)
 		return -1;
 	}
 
-	ret = tm_stack_internal_destroy((tm_stack_priv_t**)&stack->priv);
-	if (ret) {
-		return ret;
-	}
-
-	free(stack->priv);
-
-	return 0;
+	return tm_stack_internal_destroy((tm_stack_priv_t**)&stack->priv);
 }
 
 int tm_stack_push(tm_stack_t *stack, void *data)
