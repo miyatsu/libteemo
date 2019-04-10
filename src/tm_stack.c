@@ -125,6 +125,9 @@ static int tm_stack_internal_pop(tm_stack_priv_t **priv, void **data)
 
 	/* Stack empty */
 	if (NULL == (*priv)->top) {
+		if ((*priv)->attribute->option | TM_STACK_OPTION_MULTI_THREAD) {
+			mtx_unlock(&(*priv)->attribute->lock);
+		}
 		return -1;
 	}
 
